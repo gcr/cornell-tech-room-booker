@@ -1,6 +1,6 @@
 ews = require('ews-javascript-api')
 
-exports.get_room_availability = (netid, password, room-netids, cb) ->
+exports.get_room_availability = (netid, password, room-netids, date-string, cb) ->
   if netid.indexOf("@") != -1
     return Promise.reject message: "Invalid netid"
 
@@ -14,9 +14,11 @@ exports.get_room_availability = (netid, password, room-netids, cb) ->
       return Promise.reject message: "Invalid room ID"
   attendee = [new ews.AttendeeInfo(id + "@cornell.edu") for id in room-netids]
 
+  # Build time window
+  day = ews.DateTime.Parse date-string
   timeWindow = new ews.TimeWindow(
-    new ews.DateTime(ews.DateTime.Now.TotalMilliSeconds - ews.TimeSpan.FromHours(24).duration.asMilliseconds()),
-    new ews.DateTime(ews.DateTime.Now.TotalMilliSeconds + ews.TimeSpan.FromHours(24).duration.asMilliseconds()),
+    new ews.DateTime(day.TotalMilliSeconds - ews.TimeSpan.FromHours(24).duration.asMilliseconds()),
+    new ews.DateTime(day.TotalMilliSeconds + ews.TimeSpan.FromHours(24).duration.asMilliseconds()),
   )
 
   cal <- exch.GetUserAvailability(

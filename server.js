@@ -13,7 +13,7 @@
     });
   });
   app.post('/availability', function(req, res){
-    var success, fail, rooms;
+    var success, fail, ref$, rooms, dateString;
     success = function(response){
       return res.send(JSON.stringify({
         ok: response
@@ -24,8 +24,8 @@
         err: err.message
       }));
     };
-    rooms = req.body.rooms;
-    return api.get_room_availability(secrets.user, secrets.pass, rooms).then(success, fail);
+    ref$ = req.body, rooms = ref$.rooms, dateString = ref$.dateString;
+    return api.get_room_availability(secrets.user, secrets.pass, rooms, dateString).then(success, fail);
   });
   app.listen(3000, function(){
     return console.log('Server listening at http://localhost:3000/');

@@ -4,27 +4,6 @@ export BACKGROUND_LOADING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAA
 
 export BACKGROUND_LOADING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAKElEQVQYV2NkQAObpaX/MyKLgQR8nz5lhAvCBECKwILIAmBBdAGQIABEwxHu9sr/MwAAAABJRU5ErkJggg=="
 
-Vue.component 'active-floorplan' do
-  template: '''
-  <floorplan :roomStatus="roomStatus" :floorid="floorid"></floorplan>
-  '''
-  props: ['rooms', 'floorid']
-  data: -> store: window.availability-store
-  methods: compute-activity: (room) ->
-    if room.loaded
-      for evt in room.events
-        if @store.event-selected evt
-          return "red"
-      "green-outline"
-    else
-      "red-hatch"
-  computed:
-    roomStatus: ->
-      roomStatus = {}
-      for room in @rooms
-        roomStatus[room] = @compute-activity @store.load-availability(room)
-      roomStatus
-
 Vue.component 'floor-list' do
   template: '''
   <ul>
@@ -60,44 +39,34 @@ Vue.component 'room-list' do
     roomName: ROOMID_TO_NAME
     status: availability-store.attentionRoomStatus
 
-#Vue.component 'room-listing' do
-#  template: '''
-#  <div style="display: flex; flex-wrap: nowrap;">
-#    <ul>
-#      <li v-for="floor in floorlist">
-#        <h1>{{floor.name}} <a href="#" @click="view(floor)">(View)</a></h1>
-#        <ul>
-#          <li v-for="room in floor.rooms">{{room.name}}</li>
-#        </ul>
-#      </li>
-#    </ul>
-#    <div style="width: 100; max-height: 100%;">
-#    <active-floorplan
-#      :floorid="viewingFloor"
-#      :rooms="viewingRooms"></active-floorplan>
-#    </div>
-#    <timeslice-table :rooms="viewingRooms"></timeslice-table>
-#  </div>
-#  '''
-#  methods:
-#    view: (floor) ->
-#      @viewing-floor = floor.name
-#  computed:
-#    floorlist: -> FLOOR_LIST
-#    viewing-rooms: -> [room.id for floor in FLOOR_LIST when floor.name == @viewing-floor for room in floor.rooms]
-#  data: ->
-#   selected-rooms: []
-#   viewing-floor: ""
-
+Vue.component 'date-scrubber' do
+  template: '''
+  <div>
+    <a href="#" @click="backward">Prev</a>
+    <h2>{{date}}</h2>
+    <a href="#" @click="forward">Next</a>
+  </div>
+  '''
+  data: ->
+    store: window.availability-store
+  computed:
+    date: -> @store.attention-day.format 'ddd, MMM D'
+  methods:
+    forward: -> @store.bump-attention-day 1
+    backward: -> @store.bump-attention-day -1
 
 Vue.component 'app' do
- template: '''
- <div>
-   <floor-list></floor-list>
-   <room-list></room-list>
-   <floorplan></floorplan>
- </div>
- '''
+  template: '''
+  <div style="display: flex; flex-wrap: nowrap;">
+    <div>
+      <date-scrubber></date-scrubber>
+      <floor-list></floor-list>
+      <room-list></room-list>
+    </div>
+    <div style="min-width: 200px;"><floorplan></floorplan></div>
+    <calendar></calendar>
+  </div>
+  '''
 
 
 $ ->

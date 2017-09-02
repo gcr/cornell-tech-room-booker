@@ -16,9 +16,9 @@ app.post '/availability', (req, res) ->
   fail = (err) ->
     res.send(JSON.stringify(err: err.message))
 
-  {rooms} = req.body
+  {rooms, date-string} = req.body
   api.get_room_availability(
-     secrets.user, secrets.pass, rooms
+     secrets.user, secrets.pass, rooms, date-string
   ).then(success, fail)
 
 

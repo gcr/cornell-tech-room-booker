@@ -1,10 +1,11 @@
 Vue.component 'time-ribbon' do
   # One of these just for now
   template: '''
-  <div :style="style"></div>
+  <div v-if="shouldShow" :style="style"></div>
   '''
   data: -> store: window.availability-store
   computed:
+    shouldShow: -> moment!.isSame @store.attention-day, 'd'
     minute: -> window.availability-store.now-minute
     style: ->
       position: "absolute"
@@ -85,7 +86,7 @@ Vue.component 'show-timeslice' do
      </div>
   </div>
   '''
-  props: ['events', 'errorMessage', 'loaded', 'showHours']
+  props: ['events', 'loaded', 'showHours', 'errorMessage']
   data: ->
     timeslices: [0 til 24 by 0.5]
   methods:
@@ -97,28 +98,46 @@ Vue.component 'show-timeslice' do
 
 Vue.component 'room-availability-timeslice' do
   template: '''
-    <show-timeslice v-bind="store.loadAvailability(netid)"></show-timeslice>
+    <show-timeslice
+      :events="events" :loaded="loaded"
+      ></show-timeslice>
   '''
   props: ['netid']
   data: -> store: window.availability-store
+  computed:
+    events: -> @availability.events
+    loaded: -> @availability.loaded
+    errorMessage: -> @availability.errorMessage
+    availability: -> @store.load-availability @netid
 
-Vue.component 'timeslice-table' do
+Vue.component 'calendar' do
   template: '''
     <table>
       <tr>
         <td></td>
-        <td v-for="room in rooms">{{roomShortname[room]}}</td>
+        <td v-for="room in roomsToShow">{{roomShortname[room]}}</td>
       </tr>
       <tr>
         <td>
           <show-timeslice showHours="true" loaded="true"></show-timeslice>
         </td>
-        <td v-for="room in rooms">
+        <td v-for="room in roomsToShow">
           <room-availability-timeslice :netid="room"></room-availability-timeslice>
         </td>
+        <td><a href="#" @click="expand()">SHOW / HIDE ALL ROOMS...</a></td>
       </tr>
     </table>
   '''
-  props: ['rooms']
+  data: ->
+    store: availability-store
+    room-shortname: ROOMID_TO_SHORTNAME
+    expanded: true
+  methods: expand: -> @expanded = !@expanded
   computed:
-    room-shortname: -> window.ROOM_ID_TO_SHORTNAME
+    selected-room: -> @store.selected-room
+    rooms-to-show: ->
+      expanded-rooms = if @expanded then @store.attention-rooms else []
+      if @selected-room
+        [@selected-room] ++ expanded-rooms
+      else
+        expanded-rooms

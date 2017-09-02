@@ -2,8 +2,8 @@
 (function(){
   var ews;
   ews = require('ews-javascript-api');
-  exports.get_room_availability = function(netid, password, roomNetids, cb){
-    var exch, i$, len$, id, attendee, res$, timeWindow;
+  exports.get_room_availability = function(netid, password, roomNetids, dateString, cb){
+    var exch, i$, len$, id, attendee, res$, day, timeWindow;
     if (netid.indexOf("@") !== -1) {
       return Promise.reject({
         message: "Invalid netid"
@@ -26,7 +26,8 @@
       res$.push(new ews.AttendeeInfo(id + "@cornell.edu"));
     }
     attendee = res$;
-    timeWindow = new ews.TimeWindow(new ews.DateTime(ews.DateTime.Now.TotalMilliSeconds - ews.TimeSpan.FromHours(24).duration.asMilliseconds()), new ews.DateTime(ews.DateTime.Now.TotalMilliSeconds + ews.TimeSpan.FromHours(24).duration.asMilliseconds()));
+    day = ews.DateTime.Parse(dateString);
+    timeWindow = new ews.TimeWindow(new ews.DateTime(day.TotalMilliSeconds - ews.TimeSpan.FromHours(24).duration.asMilliseconds()), new ews.DateTime(day.TotalMilliSeconds + ews.TimeSpan.FromHours(24).duration.asMilliseconds()));
     return exch.GetUserAvailability(attendee, timeWindow, ews.AvailabilityData.FreeBusy).then(function(cal){
       var makeAttendeeResponse, i$, ref$, ref1$, len$, i, res, resultObj$ = {};
       makeAttendeeResponse = function(res){

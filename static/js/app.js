@@ -4,42 +4,6 @@
   out$.CORNELL_TECH_RED = CORNELL_TECH_RED = "#b31b1b";
   out$.BACKGROUND_LOADING = BACKGROUND_LOADING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAIUlEQVQYV2PcLC393/fpU0YGNIAhAJMnTgLZWOJ0INsPADIQCAdlTP30AAAAAElFTkSuQmCC";
   out$.BACKGROUND_LOADING = BACKGROUND_LOADING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAKElEQVQYV2NkQAObpaX/MyKLgQR8nz5lhAvCBECKwILIAmBBdAGQIABEwxHu9sr/MwAAAABJRU5ErkJggg==";
-  Vue.component('active-floorplan', {
-    template: '<floorplan :roomStatus="roomStatus" :floorid="floorid"></floorplan>',
-    props: ['rooms', 'floorid'],
-    data: function(){
-      return {
-        store: window.availabilityStore
-      };
-    },
-    methods: {
-      computeActivity: function(room){
-        var i$, ref$, len$, evt;
-        if (room.loaded) {
-          for (i$ = 0, len$ = (ref$ = room.events).length; i$ < len$; ++i$) {
-            evt = ref$[i$];
-            if (this.store.eventSelected(evt)) {
-              return "red";
-            }
-          }
-          return "green-outline";
-        } else {
-          return "red-hatch";
-        }
-      }
-    },
-    computed: {
-      roomStatus: function(){
-        var roomStatus, i$, ref$, len$, room;
-        roomStatus = {};
-        for (i$ = 0, len$ = (ref$ = this.rooms).length; i$ < len$; ++i$) {
-          room = ref$[i$];
-          roomStatus[room] = this.computeActivity(this.store.loadAvailability(room));
-        }
-        return roomStatus;
-      }
-    }
-  });
   Vue.component('floor-list', {
     template: '<ul>\n  <li v-for="floor in floorlist">\n    <h2>\n      <a href="#"@click="selectFloor(floor)">(Select)</a>\n      {{floor.name}}\n    </h2>\n  </li>\n</ul>',
     data: function(){
@@ -74,8 +38,29 @@
       };
     }
   });
+  Vue.component('date-scrubber', {
+    template: '<div>\n  <a href="#" @click="backward">Prev</a>\n  <h2>{{date}}</h2>\n  <a href="#" @click="forward">Next</a>\n</div>',
+    data: function(){
+      return {
+        store: window.availabilityStore
+      };
+    },
+    computed: {
+      date: function(){
+        return this.store.attentionDay.format('ddd, MMM D');
+      }
+    },
+    methods: {
+      forward: function(){
+        return this.store.bumpAttentionDay(1);
+      },
+      backward: function(){
+        return this.store.bumpAttentionDay(-1);
+      }
+    }
+  });
   Vue.component('app', {
-    template: '<div>\n  <floor-list></floor-list>\n  <room-list></room-list>\n  <floorplan></floorplan>\n</div>'
+    template: '<div style="display: flex; flex-wrap: nowrap;">\n  <div>\n    <date-scrubber></date-scrubber>\n    <floor-list></floor-list>\n    <room-list></room-list>\n  </div>\n  <div style="min-width: 200px;"><floorplan></floorplan></div>\n  <calendar></calendar>\n</div>'
   });
   $(function(){
     return this.app = new Vue({

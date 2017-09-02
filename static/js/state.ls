@@ -1,9 +1,6 @@
-parse-events-to-moments = (events) ->
+parse-events-to-moments = (events, which-day) ->
   # Return [{start: ..., end: ...}, ...]
   # Slice the portions of this event that overlap with today
-
-  which-day = moment!
-  which-day = moment!.subtract 1, 'day'
 
   result-events = []
   for {start, end, busy} in events
@@ -48,6 +45,9 @@ export class AvailabilityStore
     # Currently-considered time range, in minutes on the current day
     @current-time-range = make-current-time-range!
 
+    # What day to show events from
+    @attention-day = moment!
+
     # When to show the time ribbon
     @now-minute = moment-to-midnight-minutes moment!
 
@@ -66,13 +66,21 @@ export class AvailabilityStore
   # be mutated once the room is loaded.
   load-availability: (room-netid) ->
     if room-netid not of @cached-availability
-      @cached-availability[room-netid] = loaded: false, events: [], errorMessage: ""
+      Vue.set @cached-availability, room-netid, loaded: false, events: [], errorMessage: ""
       # This room needs to be loaded, so debounce it
       @query-debounce-rooms[room-netid] = true
       @query-server-for-availabilities!
     @cached-availability[room-netid]
 
   promise-availability: (room-netid) ->
+
+  bump-attention-day: (range) ->
+    @attention-day = moment(@attention-day.add range, 'day')
+    @cached-availability = {}
+    # ^ a bit surprised that this here works, but i'm replacing the
+    # value completely. (i think this will work as long as views don't
+    # bind to the object directly, which they shouldn't)
+    @set-attention-rooms [r for r in @attention-rooms]
 
   # Maybe query the server for all debounced rooms.
   query-server-for-availabilities: ->
@@ -87,6 +95,7 @@ export class AvailabilityStore
           url: '/availability'
           data: do
             rooms: [room for room,_ of @query-debounce-rooms]
+            date-string: @attention-day.format!
           error: (err) ~>
             @query-debounce-rooms = {}
             @query-server-promise = null
@@ -103,7 +112,7 @@ export class AvailabilityStore
                 # Need to preserve Vue reactivity
                 old-events = @cached-availability[room-id].events
                 old-events.splice 0
-                for ev in parse-events-to-moments events
+                for ev in parse-events-to-moments events, @attention-day
                   old-events.push ev
                 @update-attention-room-status!
               resolve!
@@ -132,7 +141,8 @@ export class AvailabilityStore
             Vue.set @attention-room-status, roomid, "Booked"
 
   set-attention-rooms: (new-room-ids) ->
-    # Keep Vue reactivity
+    # Keep Vue reactivity. (Some views may bind to @attention-rooms
+    # itself)
     @attention-rooms.splice 0
     for id in new-room-ids
       @attention-rooms.push id
@@ -140,3 +150,5 @@ export class AvailabilityStore
   set-attention-floor: (new-floor-name) -> @attention-floor = new-floor-name
 
 export availability-store = new AvailabilityStore!
+
+#setInterval (-> availability-store.now-minute = 60*24*Math.random!), 1500
