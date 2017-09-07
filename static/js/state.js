@@ -67,10 +67,11 @@
     };
     prototype.promiseAvailability = function(roomNetid){};
     prototype.bumpAttentionDay = function(range){
-      var r;
+      var oldSelectedRoom, r;
       this.attentionDay = moment(this.attentionDay.add(range, 'day'));
       this.cachedAvailability = {};
-      return this.setAttentionRooms((function(){
+      oldSelectedRoom = this.selectedRoom;
+      this.setAttentionRooms((function(){
         var i$, ref$, len$, results$ = [];
         for (i$ = 0, len$ = (ref$ = this.attentionRooms).length; i$ < len$; ++i$) {
           r = ref$[i$];
@@ -78,6 +79,7 @@
         }
         return results$;
       }.call(this)));
+      return this.selectedRoom = oldSelectedRoom;
     };
     prototype.queryServerForAvailabilities = function(){
       var this$ = this;
@@ -167,6 +169,7 @@
     };
     prototype.setAttentionRooms = function(newRoomIds){
       var i$, len$, id;
+      this.selectRoom(null);
       this.attentionRooms.splice(0);
       for (i$ = 0, len$ = newRoomIds.length; i$ < len$; ++i$) {
         id = newRoomIds[i$];
@@ -176,6 +179,13 @@
     };
     prototype.setAttentionFloor = function(newFloorName){
       return this.attentionFloor = newFloorName;
+    };
+    prototype.selectRoom = function(roomid){
+      if (this.selectedRoom === roomid) {
+        return this.selectedRoom = null;
+      } else {
+        return this.selectedRoom = roomid;
+      }
     };
     return AvailabilityStore;
   }());

@@ -27,7 +27,5 @@
     ref$ = req.body, rooms = ref$.rooms, dateString = ref$.dateString;
     return api.get_room_availability(secrets.user, secrets.pass, rooms, dateString).then(success, fail);
   });
-  app.listen(3000, function(){
-    return console.log('Server listening at http://localhost:3000/');
-  });
+  app.listen(3000, '0.0.0.0');
 }).call(this);

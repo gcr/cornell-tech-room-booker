@@ -5,7 +5,7 @@
   out$.BACKGROUND_LOADING = BACKGROUND_LOADING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAIUlEQVQYV2PcLC393/fpU0YGNIAhAJMnTgLZWOJ0INsPADIQCAdlTP30AAAAAElFTkSuQmCC";
   out$.BACKGROUND_LOADING = BACKGROUND_LOADING = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAKElEQVQYV2NkQAObpaX/MyKLgQR8nz5lhAvCBECKwILIAmBBdAGQIABEwxHu9sr/MwAAAABJRU5ErkJggg==";
   Vue.component('floor-list', {
-    template: '<ul>\n  <li v-for="floor in floorlist">\n    <h2>\n      <a href="#"@click="selectFloor(floor)">(Select)</a>\n      {{floor.name}}\n    </h2>\n  </li>\n</ul>',
+    template: '<ul class="floor-list">\n  <li v-for="floor in floorlist">\n    <button :class="{floor: true, active: isActive(floor)}" @click="selectFloor(floor)">\n      {{floor.name}}\n      &nbsp;\n      <i v-if="isActive(floor)" class="fa fa-check"></i>\n    </button>\n  </li>\n</ul>',
     data: function(){
       return {
         floorlist: FLOOR_LIST,
@@ -14,6 +14,9 @@
       };
     },
     methods: {
+      isActive: function(floor){
+        return this.currentFloor === floor.name;
+      },
       selectFloor: function(floor){
         var allRoomIds, res$, i$, ref$, len$, r;
         this.currentFloor = floor.name;
@@ -29,17 +32,62 @@
     }
   });
   Vue.component('room-list', {
-    template: '<ul>\n  <li v-for="roomid in attentionRooms">\n    {{roomName[roomid]}} ({{status[roomid]}})\n  </li>\n</ul>',
+    template: '<div class="room-list">\n  <div class="app-header">\n    <h1 class="wide">{{description}}</h1>\n  </div>\n  <ul>\n    <li :class="classfor(roomid)" v-for="roomid in attentionRooms">\n      <a href="#" @click="click(roomid)">\n        {{roomName[roomid]}}\n        &nbsp;\n        <i v-if="isSelected(roomid)" class="fa fa-check"></i>\n      </a>\n    </li>\n    <span v-if="attentionRooms.length == 0">\n      No rooms to show. Select a location at the top left.\n    </span>\n  </ul>\n</div>',
     data: function(){
       return {
         attentionRooms: availabilityStore.attentionRooms,
         roomName: ROOMID_TO_NAME,
         status: availabilityStore.attentionRoomStatus
       };
+    },
+    methods: {
+      click: function(roomid){
+        return availabilityStore.selectRoom(roomid);
+      },
+      isSelected: function(roomid){
+        return availabilityStore.selectedRoom === roomid;
+      },
+      classfor: function(roomid){
+        return this.status[roomid] + (this.isSelected(roomid) ? " selected" : "");
+      }
+    },
+    computed: {
+      description: function(){
+        var nAvailable, r, nLoading;
+        nAvailable = (function(){
+          var i$, ref$, len$, results$ = [];
+          for (i$ = 0, len$ = (ref$ = this.attentionRooms).length; i$ < len$; ++i$) {
+            r = ref$[i$];
+            if (this.status[r] === "Available") {
+              results$.push(r);
+            }
+          }
+          return results$;
+        }.call(this)).length;
+        nLoading = (function(){
+          var i$, ref$, len$, results$ = [];
+          for (i$ = 0, len$ = (ref$ = this.attentionRooms).length; i$ < len$; ++i$) {
+            r = ref$[i$];
+            if (this.status[r] === "Loading") {
+              results$.push(r);
+            }
+          }
+          return results$;
+        }.call(this)).length;
+        if (this.attentionRooms.length < 2) {
+          return "Room list";
+        } else if (nLoading > 0 && nAvailable === 0) {
+          return "Room list";
+        } else if (nAvailable === 0) {
+          return "No rooms free";
+        } else {
+          return nAvailable + " rooms free";
+        }
+      }
     }
   });
   Vue.component('date-scrubber', {
-    template: '<div>\n  <a href="#" @click="backward">Prev</a>\n  <h2>{{date}}</h2>\n  <a href="#" @click="forward">Next</a>\n</div>',
+    template: '<div class="date-scrubber app-header">\n  <h1>\n  {{date}}\n  <button class="btn" @click="backward">\n    <i class="fa fa-chevron-left"></i>\n  </button>\n  <button class="btn" @click="forward">\n    <i class="fa fa-chevron-right"></i>\n  </button>\n  </h1>\n</div>',
     data: function(){
       return {
         store: window.availabilityStore
@@ -60,7 +108,7 @@
     }
   });
   Vue.component('app', {
-    template: '<div style="display: flex; flex-wrap: nowrap;">\n  <div>\n    <date-scrubber></date-scrubber>\n    <floor-list></floor-list>\n    <room-list></room-list>\n  </div>\n  <div style="min-width: 200px;"><floorplan></floorplan></div>\n  <calendar></calendar>\n</div>'
+    template: '<div class="app">\n  <div class="app-pane">\n    <date-scrubber></date-scrubber>\n    <floor-list></floor-list>\n    <room-list></room-list>\n  </div>\n  <div class="map app-pane">\n    <div class="app-header">\n      <h1 class="wide">Map</h1>\n    </div>\n    <floorplan></floorplan>\n  </div>\n  <div class="calendar" style="flex: 1 0 35em;">\n    <calendar></calendar>\n  </div>\n</div>'
   });
   $(function(){
     return this.app = new Vue({

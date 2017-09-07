@@ -1,7 +1,7 @@
 Vue.component 'time-ribbon' do
   # One of these just for now
   template: '''
-  <div v-if="shouldShow" :style="style"></div>
+  <div :style="style"></div>
   '''
   data: -> store: window.availability-store
   computed:
@@ -9,10 +9,10 @@ Vue.component 'time-ribbon' do
     minute: -> window.availability-store.now-minute
     style: ->
       position: "absolute"
-      height: "3px"
+      height: "6px"
       top: ""+(@minute * 32.0 / 60 ) + "px"
       width: "100%"
-      background: '\#1bb31b'
+      background: '\#b31b1b'
       borderTop: "solid 2px \#fff"
       borderBottom: "solid 2px \#fff"
 
@@ -34,15 +34,15 @@ Vue.component 'time-square' do
       # Intersect the selection with my half-hour block
       @store.time-selected @hour*60, @hour*60+30
     style: ->
-      height: "15px"
-      max-height: "15px"
-      width: "5em"
+      height: "16px"
+      max-height: "16px"
+      min-width: "3em"
       background:
         if @selected
           "url(#{BACKGROUND_LOADING})"
         else
           if @loaded then null else "url(#{BACKGROUND_LOADING})"
-      borderTop: "solid 1px \##{if this.hour % 1 then 'eee' else 'e38b8b'}"
+      borderTop: if @loaded then "solid 1px \##{if this.hour % 1 then 'eee' else '000'}" else ""
       overflow: "hidden"
 Vue.component 'time-square-event' do
   # Shows one event on somebody's calendar
@@ -59,7 +59,7 @@ Vue.component 'time-square-event' do
     endMinutes: -> moment-to-midnight-minutes @end
     style: ->
       position: "absolute"
-      width: "4em"
+      margin: "0 0.5em"
       backgroundColor: CORNELL_TECH_RED
       border-radius: "4px"
       color: "\#fff"
@@ -112,31 +112,53 @@ Vue.component 'room-availability-timeslice' do
 
 Vue.component 'calendar' do
   template: '''
-    <table>
-      <tr>
-        <td></td>
-        <td v-for="room in roomsToShow">{{roomShortname[room]}}</td>
-      </tr>
-      <tr>
-        <td>
-          <show-timeslice showHours="true" loaded="true"></show-timeslice>
-        </td>
-        <td v-for="room in roomsToShow">
-          <room-availability-timeslice :netid="room"></room-availability-timeslice>
-        </td>
-        <td><a href="#" @click="expand()">SHOW / HIDE ALL ROOMS...</a></td>
-      </tr>
-    </table>
+    <div>
+      <div class="app-header">
+        <h1 class="wide">
+          Availability
+          <button class="btn" @click="expand" v-if="showButton">
+            <i v-if="!expanded" class="fa fa-lg fa-eye"></i>
+            <i v-if="expanded" class="fa fa-lg fa-eye-slash"></i>
+            {{expanded? "Hide entire floor" : "Show entire floor"}}
+          </button>
+        </h1>
+      </div>
+      <table>
+        <tr>
+          <th class="open">Room </th>
+          <th v-for="room in roomsToShow">
+              <a :class="{selected: isSelected(room)}"
+                  href="#" @click="click(room)">
+                {{roomShortname[room]}}
+                <i v-if="isSelected(room)" class="fa fa-check"></i>
+              </a>
+          </th>
+        </tr>
+        <tr>
+          <td>
+            <show-timeslice showHours="true" loaded="true"></show-timeslice>
+          </td>
+          <td v-for="room in roomsToShow">
+            <room-availability-timeslice :netid="room"></room-availability-timeslice>
+          </td>
+        </tr>
+      </table>
+    </div>
   '''
   data: ->
     store: availability-store
     room-shortname: ROOMID_TO_SHORTNAME
-    expanded: true
-  methods: expand: -> @expanded = !@expanded
+    expanded: false
+  methods:
+    expand: -> @expanded = !@expanded
+    click: (room) -> @store.select-room room
+    is-selected: (room) -> @store.selected-room == room
   computed:
+    show-button: -> false
+    #show-button: -> @selected-room and @store.attention-rooms.length >= 2
     selected-room: -> @store.selected-room
     rooms-to-show: ->
-      expanded-rooms = if @expanded then @store.attention-rooms else []
+      expanded-rooms = if not @selected-room or @expanded then @store.attention-rooms else []
       if @selected-room
         [@selected-room] ++ expanded-rooms
       else

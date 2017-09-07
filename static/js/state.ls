@@ -80,7 +80,9 @@ export class AvailabilityStore
     # ^ a bit surprised that this here works, but i'm replacing the
     # value completely. (i think this will work as long as views don't
     # bind to the object directly, which they shouldn't)
+    old-selected-room = @selected-room
     @set-attention-rooms [r for r in @attention-rooms]
+    @selected-room = old-selected-room
 
   # Maybe query the server for all debounced rooms.
   query-server-for-availabilities: ->
@@ -143,11 +145,18 @@ export class AvailabilityStore
   set-attention-rooms: (new-room-ids) ->
     # Keep Vue reactivity. (Some views may bind to @attention-rooms
     # itself)
+    @select-room null
     @attention-rooms.splice 0
     for id in new-room-ids
       @attention-rooms.push id
     @update-attention-room-status!
   set-attention-floor: (new-floor-name) -> @attention-floor = new-floor-name
+
+  select-room: (roomid) ->
+    if @selected-room == roomid
+      @selected-room = null
+    else
+      @selected-room = roomid
 
 export availability-store = new AvailabilityStore!
 
