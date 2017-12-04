@@ -22,5 +22,6 @@ app.post '/availability', (req, res) ->
   ).then(success, fail)
 
 
-#app.listen 3000, -> console.log 'Server listening at http://localhost:3000/'
-app.listen 3000, '0.0.0.0'
+port = process.env.PORT or 3000
+#app.listen port, -> console.log 'Server listening at http://localhost:3000/'
+app.listen port, '0.0.0.0'
