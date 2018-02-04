@@ -26,12 +26,22 @@ make-current-time-range = ->
   start-minutes = Math.floor(now-minutes / 30.0) * 30.0
   start: start-minutes, end: start-minutes + 30
 
+batch-function-calls-into-list = (timeout, f) ->
+  # Batch up groups of f(1), f(2), f(3) calls into f([1,2,3])
+  args = []
+  timer = null
+  return (x) ->
+    args.push x
+    if timer is null
+      timer := setTimeout (-> f args), timeout
+
+
 export class AvailabilityStore
   # Global state.
   # NOTE: All state transitions must be Vue-compatible, so
   # when adding/removing hash keys, use Vue.set etc
   ->
-    # Attention set: List of room availabilities to show
+    # Attention set: List of room availabilities to show today.
     @attention-rooms = []
     @attention-room-status = {}
 
@@ -52,8 +62,8 @@ export class AvailabilityStore
     @now-minute = moment-to-midnight-minutes moment!
 
     # Caching (internal)
-    @cached-availability = {} # <-- Do not use externally
-    @query-debounce-rooms = {}
+    @cached-room-data = {} # <-- Do not use externally
+    @query-debounce-rooms = []
     @query-server-promise = null
 
   highlight-half-hour-block: (hour) ->
@@ -61,22 +71,23 @@ export class AvailabilityStore
     @current-time-range.end = hour * 60 + 30
     @update-attention-room-status!
 
-  # Returns an object that contains the room's availability. It's safe
+  # Returns an object that contains the room's room-data. It's safe
   # to bind views to the result; the result is reactive and will
   # be mutated once the room is loaded.
-  load-availability: (room-netid) ->
-    if room-netid not of @cached-availability
-      Vue.set @cached-availability, room-netid, loaded: false, events: [], errorMessage: ""
+  load-room-data: (room-netid) ->
+    unique-room-id = @attention-day.format! + room-netid
+    if unique-room-id not of @cached-room-data
+      Vue.set @cached-room-data, unique-room-id, loaded: false, events: [], errorMessage: "", date: @attention-day.format!
       # This room needs to be loaded, so debounce it
-      @query-debounce-rooms[room-netid] = true
+      @query-debounce-rooms.push netid: room-netid, date: @attention-day.format!, unique-room-id: unique-room-id
       @query-server-for-availabilities!
-    @cached-availability[room-netid]
-
-  promise-availability: (room-netid) ->
+    @cached-room-data[unique-room-id]
 
   bump-attention-day: (range) ->
+    @query-server-promise = null
+    @query-debounce-rooms = []
     @attention-day = moment(@attention-day.add range, 'day')
-    @cached-availability = {}
+    @cached-room-data = {}
     # ^ a bit surprised that this here works, but i'm replacing the
     # value completely. (i think this will work as long as views don't
     # bind to the object directly, which they shouldn't)
@@ -91,32 +102,43 @@ export class AvailabilityStore
     else
       @query-server-promise = new Promise (resolve,reject) ~>
         <~ set-timeout _, 100
+        date = @attention-day.format!
+        console.log "Retrieving rooms for", date
+        room-netid-hash = {[data.netid, true] for id,data of @query-debounce-rooms}
+        room-netids = [netid for netid,_ of room-netid-hash]
         $.ajax do
           data-type: 'json'
           method: 'POST'
           url: '/availability'
           data: do
-            rooms: [room for room,_ of @query-debounce-rooms]
-            date-string: @attention-day.format!
+            rooms: room-netids
+            date-string: date
           error: (err) ~>
-            @query-debounce-rooms = {}
+            @query-debounce-rooms = []
             @query-server-promise = null
             reject err
           success: ({ok, err}) ~>
-            @query-debounce-rooms = {}
+            @query-debounce-rooms = []
             @query-server-promise = null
             if err
               reject err
             else
-              for room-id, {errorMessage, events} of ok
-                @cached-availability[room-id].errorMessage = errorMessage
-                @cached-availability[room-id].loaded = true
-                # Need to preserve Vue reactivity
-                old-events = @cached-availability[room-id].events
-                old-events.splice 0
-                for ev in parse-events-to-moments events, @attention-day
-                  old-events.push ev
-                @update-attention-room-status!
+              console.log date, @cached-room-data
+              for room-netid, {errorMessage, events} of ok
+                unique-room-id = date + room-netid
+                # Only update this room if the current day is the one the
+                # query is waiting for. If several queries are in
+                # flight (the user clicks Next Day quickly enough),
+                # the last one wins, which isn't what we want.
+                if unique-room-id of @cached-room-data
+                  @cached-room-data[unique-room-id].errorMessage = errorMessage
+                  @cached-room-data[unique-room-id].loaded = true
+                  # Need to preserve Vue reactivity
+                  old-events = @cached-room-data[unique-room-id].events
+                  old-events.splice 0
+                  for ev in parse-events-to-moments events, @attention-day
+                    old-events.push ev
+                  @update-attention-room-status!
               resolve!
 
   time-selected: (start-min, end-min) ->
@@ -130,15 +152,19 @@ export class AvailabilityStore
     @time-selected moment-to-midnight-minutes(start), moment-to-midnight-minutes(end)
 
   update-attention-room-status: ->
+    # Populates @attention-room-status[roomid] to indicate whether
+    # this room is Available, Booked, or Loading at the time of
+    # the current hour selection
+
     # Keep Vue reactivity
     for roomid in @attention-rooms
       Vue.delete @attention-room-status, roomid
-      availability = @load-availability roomid
-      if not availability.loaded
+      room-data = @load-room-data roomid
+      if not room-data.loaded
         Vue.set @attention-room-status, roomid, "Loading"
       else
         Vue.set @attention-room-status, roomid, "Available"
-        for event in availability.events
+        for event in room-data.events
           if @event-selected event
             Vue.set @attention-room-status, roomid, "Booked"
 

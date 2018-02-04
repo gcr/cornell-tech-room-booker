@@ -116,16 +116,16 @@
     },
     computed: {
       events: function(){
-        return this.availability.events;
+        return this.roomData.events;
       },
       loaded: function(){
-        return this.availability.loaded;
+        return this.roomData.loaded;
       },
       errorMessage: function(){
-        return this.availability.errorMessage;
+        return this.roomData.errorMessage;
       },
-      availability: function(){
-        return this.store.loadAvailability(this.netid);
+      roomData: function(){
+        return this.store.loadRoomData(this.netid);
       }
     }
   });

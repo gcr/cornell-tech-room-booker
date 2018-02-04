@@ -105,10 +105,10 @@ Vue.component 'room-availability-timeslice' do
   props: ['netid']
   data: -> store: window.availability-store
   computed:
-    events: -> @availability.events
-    loaded: -> @availability.loaded
-    errorMessage: -> @availability.errorMessage
-    availability: -> @store.load-availability @netid
+    events: -> @room-data.events
+    loaded: -> @room-data.loaded
+    errorMessage: -> @room-data.errorMessage
+    room-data: -> @store.load-room-data @netid
 
 Vue.component 'calendar' do
   template: '''

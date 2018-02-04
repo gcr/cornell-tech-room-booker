@@ -80,7 +80,7 @@ Vue.component 'floorplan' do
   '''
   data: ->
     store: availability-store
-    roomStatus: availability-store.attentionRoomStatus
+    roomStatus: availability-store.attention-room-status
 
 click = (roomid) -> availability-store.select-room roomid
 
