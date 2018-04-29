@@ -143,12 +143,12 @@ Vue.component 'floorplan-bloomberg-three' do
           id="path3400" />
      </g>
      <path
-        id="cutech-bloom-397" @click="click('cutech-bloom-397')"
-        :style="stylefor('cutech-bloom-397')"
-        d="M 105.875,45.648 111,247.324 274,239.824 276.667,67.972 105.875,45.648 Z" />
-     <path
         id="cutech-bloom-398" @click="click('cutech-bloom-398')"
         :style="stylefor('cutech-bloom-398')"
+        d="M 105.875,45.648 111,247.324 274,239.824 276.667,67.972 105.875,45.648 Z" />
+     <path
+        id="cutech-bloom-397" @click="click('cutech-bloom-397')"
+        :style="stylefor('cutech-bloom-397')"
         d="M 280,244.154 439,240.5 412.5,191.5 405.996,93.821 282,75.317 280,244.154 Z" />
      <path
         id="cutech-bloom-377" @click="click('cutech-bloom-377')"
